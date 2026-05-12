@@ -65,7 +65,6 @@ export default function App() {
 
   loadLeads();
 }, []);
-
   const filteredLeads =
     useMemo(() => {
       return leads.filter(

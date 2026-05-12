@@ -1,197 +1,266 @@
 import { useState } from "react";
-import { format } from "date-fns";
+import { formatDistanceToNow } from "date-fns";
 
 import type { Lead } from "../types/lead";
+
 import {
   addDiscussion,
   updateLead,
 } from "../services/api";
 
+import { getStatusColor } from "../utils/statusColor";
+
 interface Props {
   lead: Lead;
   onClose: () => void;
-  onUpdated: () => Promise<void>;
+  onUpdated: () => void;
 }
-
-const statuses = [
-  "NEW",
-  "CONTACTED",
-  "QUALIFIED",
-  "PROPOSAL_SENT",
-  "WON",
-  "LOST",
-] as const;
 
 export function LeadTimelineModal({
   lead,
   onClose,
   onUpdated,
 }: Props) {
-  const [note, setNote] =
-    useState("");
+  const [note, setNote] = useState("");
+  const [followUpAt, setFollowUpAt] = useState("");
+  const [status, setStatus] = useState<Lead["status"]>(lead.status);
+  const [loading, setLoading] = useState(false);
 
-  const [followUpAt, setFollowUpAt] =
-    useState("");
+  async function handleAddDiscussion(
+    e: React.FormEvent
+  ) {
+    e.preventDefault();
 
-  const [status, setStatus] =
-    useState(lead.status);
-
-  const [loading, setLoading] =
-    useState(false);
-
-  async function handleSave() {
     if (!note.trim()) return;
 
     try {
       setLoading(true);
 
-      await addDiscussion(
-        lead.id,
-        {
-          note,
-          followUpAt:
-            followUpAt || undefined,
-        }
-      );
+      // 1. Save discussion
+      await addDiscussion(lead.id, {
+        note,
+        followUpAt: followUpAt || undefined,
+      });
 
-      await updateLead(
-        lead.id,
-        { status }
-      );
+      // 2. IMPORTANT FIX: update lead with follow-up + status
+      await updateLead(lead.id, {
+        status,
+        followUpAt: followUpAt || undefined,
+      });
 
-      await onUpdated();
-      onClose();
+      setNote("");
+      setFollowUpAt("");
+
+      await onUpdated(); // refresh dashboard
     } catch (error) {
       console.error(error);
-      alert(
-        "Failed to save discussion"
-      );
+      alert("Failed to save discussion");
     } finally {
       setLoading(false);
     }
   }
 
-  return (
-    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-      <div className="bg-white w-full max-w-2xl rounded-3xl shadow-2xl overflow-hidden">
+  // OPTIONAL: ensure latest discussions first
+  const sortedDiscussions = [...lead.discussions].sort(
+    (a, b) =>
+      new Date(b.createdAt).getTime() -
+      new Date(a.createdAt).getTime()
+  );
 
-        {/* Header */}
-        <div className="p-6 border-b border-slate-200 flex justify-between items-center">
+  return (
+    <div className="fixed inset-0 z-[9999] bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+      <div className="bg-white w-full max-w-3xl rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh]">
+        
+        {/* HEADER */}
+        <div className="border-b border-slate-200 p-6 flex items-start justify-between">
           <div>
-            <h2 className="text-2xl font-bold">
-              {lead.name}
-            </h2>
-            <p className="text-slate-500">
-              {lead.company ||
-                "No company"}
-            </p>
+            <div className="flex items-center gap-3 flex-wrap">
+              <h2 className="text-2xl font-bold text-slate-800">
+                {lead.name}
+              </h2>
+
+              <span
+                className={`
+                  px-3 py-1 rounded-full text-xs font-semibold
+                  ${getStatusColor(lead.status)}
+                `}
+              >
+                {lead.status.replaceAll("_", " ")}
+              </span>
+            </div>
+
+            <div className="mt-2 text-sm text-slate-500 space-y-1">
+              {lead.company && (
+                <p>Company: {lead.company}</p>
+              )}
+
+              {lead.phone && (
+                <p>Phone: {lead.phone}</p>
+              )}
+            </div>
           </div>
 
           <button
             onClick={onClose}
-            className="text-xl"
+            className="
+              h-10 w-10
+              rounded-full
+              bg-slate-100
+              hover:bg-slate-200
+              text-slate-600
+              text-lg
+              flex items-center justify-center
+            "
           >
             ✕
           </button>
         </div>
 
-        {/* Timeline */}
-        <div className="max-h-[350px] overflow-y-auto p-6 bg-slate-50 space-y-4">
-          {lead.discussions?.length ? (
-            [...lead.discussions]
-              .reverse()
-              .map((d) => (
+        {/* DISCUSSIONS */}
+        <div className="flex-1 overflow-y-auto p-6 bg-slate-50">
+          <div className="space-y-4">
+            {sortedDiscussions.length === 0 ? (
+              <div className="bg-white border border-dashed border-slate-300 rounded-2xl p-10 text-center">
+                <p className="text-slate-500">
+                  No discussions yet
+                </p>
+              </div>
+            ) : (
+              sortedDiscussions.map((discussion) => (
                 <div
-                  key={d.id}
-                  className="flex gap-4"
+                  key={discussion.id}
+                  className="
+                    bg-white
+                    border border-slate-200
+                    rounded-2xl
+                    p-4
+                    shadow-sm
+                  "
                 >
-                  <div className="w-3 h-3 mt-2 rounded-full bg-blue-500" />
+                  <p className="text-slate-700 leading-relaxed">
+                    {discussion.note}
+                  </p>
 
-                  <div className="bg-white border rounded-2xl p-4 flex-1">
-                    <p className="text-slate-800">
-                      {d.note}
-                    </p>
-
-                    <p className="text-xs text-slate-400 mt-2">
-                      {format(
-                        new Date(
-                          d.createdAt
-                        ),
-                        "dd MMM yyyy, hh:mm a"
+                  <div className="mt-3 flex items-center justify-between">
+                    <p className="text-xs text-slate-400">
+                      {formatDistanceToNow(
+                        new Date(discussion.createdAt),
+                        { addSuffix: true }
                       )}
                     </p>
+
+                    {discussion.followUpAt && (
+                      <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full">
+                        Follow-up scheduled
+                      </span>
+                    )}
                   </div>
                 </div>
               ))
-          ) : (
-            <div className="text-center py-8 text-slate-500">
-              No discussions yet
-            </div>
-          )}
+            )}
+          </div>
         </div>
 
-        {/* Form */}
-        <div className="p-6 border-t border-slate-200 space-y-4">
-
-          <textarea
-            placeholder="Add discussion note..."
-            value={note}
-            onChange={(e) =>
-              setNote(
-                e.target.value
-              )
-            }
-            className="w-full min-h-[120px] border rounded-2xl px-4 py-3"
-          />
-
-          <div className="grid md:grid-cols-2 gap-4">
-            <input
-              type="datetime-local"
-              value={followUpAt}
-              onChange={(e) =>
-                setFollowUpAt(
-                  e.target.value
-                )
-              }
-              className="border rounded-xl px-4 py-3"
-            />
+        {/* FORM */}
+        <form
+          onSubmit={handleAddDiscussion}
+          className="border-t border-slate-200 bg-white p-6 space-y-5"
+        >
+          <div>
+            <label className="block text-sm font-medium mb-2 text-slate-700">
+              Lead Status
+            </label>
 
             <select
               value={status}
               onChange={(e) =>
                 setStatus(
-                  e.target
-                    .value as typeof statuses[number]
+                  e.target.value as Lead["status"]
                 )
               }
-              className="border rounded-xl px-4 py-3"
+              className="
+                w-full
+                rounded-xl
+                border border-slate-300
+                px-4 py-3
+                outline-none
+                focus:ring-2
+                focus:ring-blue-500
+              "
             >
-              {statuses.map(
-                (s) => (
-                  <option
-                    key={s}
-                    value={s}
-                  >
-                    {s.replaceAll(
-                      "_",
-                      " "
-                    )}
-                  </option>
-                )
-              )}
+              <option value="NEW">New</option>
+              <option value="CONTACTED">Contacted</option>
+              <option value="QUALIFIED">Qualified</option>
+              <option value="PROPOSAL_SENT">Proposal Sent</option>
+              <option value="WON">Won</option>
+              <option value="LOST">Lost</option>
             </select>
           </div>
 
+          <div>
+            <label className="block text-sm font-medium mb-2 text-slate-700">
+              Discussion Note
+            </label>
+
+            <textarea
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              placeholder="Write discussion details..."
+              required
+              className="
+                w-full
+                min-h-[120px]
+                rounded-xl
+                border border-slate-300
+                px-4 py-3
+                outline-none
+                resize-none
+                focus:ring-2
+                focus:ring-blue-500
+              "
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-2 text-slate-700">
+              Follow-up Date & Time
+            </label>
+
+            <input
+              type="datetime-local"
+              value={followUpAt}
+              onChange={(e) =>
+                setFollowUpAt(e.target.value)
+              }
+              className="
+                w-full
+                rounded-xl
+                border border-slate-300
+                px-4 py-3
+                outline-none
+                focus:ring-2
+                focus:ring-blue-500
+              "
+            />
+          </div>
+
           <button
-            onClick={handleSave}
+            type="submit"
             disabled={loading}
-            className="w-full bg-black text-white rounded-xl py-3"
+            className="
+              w-full
+              rounded-xl
+              bg-black
+              text-white
+              py-3
+              font-medium
+              hover:opacity-90
+              disabled:opacity-50
+            "
           >
-            {loading
-              ? "Saving..."
-              : "Save Discussion"}
+            {loading ? "Saving..." : "Save Discussion"}
           </button>
-        </div>
+        </form>
       </div>
     </div>
   );

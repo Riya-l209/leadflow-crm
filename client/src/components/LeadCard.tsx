@@ -59,34 +59,32 @@ export default function LeadCard({
     <div
       onClick={onClick}
       className={`
-        group
         bg-white
         border
-        border-slate-200
         rounded-3xl
         p-6
         cursor-pointer
         transition-all
-        duration-300
-        hover:shadow-xl
         hover:-translate-y-1
+        hover:shadow-xl
         ${
-          todayFollowUp
-            ? "border-blue-300 bg-blue-50"
-            : ""
+          overdue
+            ? "border-red-300"
+            : todayFollowUp
+            ? "border-blue-300"
+            : "border-slate-200"
         }
       `}
     >
-      {/* TOP */}
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex items-start justify-between gap-3">
         
-        <div>
-          <h2 className="text-2xl font-bold text-slate-900 group-hover:text-blue-600 transition-colors">
+        <div className="min-w-0">
+          <h2 className="text-2xl font-bold text-slate-900 truncate">
             {lead.name}
           </h2>
 
           {lead.company && (
-            <p className="text-slate-500 mt-2 text-sm">
+            <p className="text-slate-500 mt-2 text-sm truncate">
               {lead.company}
             </p>
           )}
@@ -113,10 +111,8 @@ export default function LeadCard({
         </span>
       </div>
 
-      {/* CONTENT */}
       <div className="mt-6">
-        
-        <p className="text-sm text-slate-700 leading-relaxed">
+        <p className="text-sm text-slate-700 line-clamp-2">
           <span className="font-semibold">
             Last Note:
           </span>{" "}
@@ -137,26 +133,15 @@ export default function LeadCard({
           </p>
         )}
 
-        {lead.followUpAt && (
-          <div
-            className={`
-              mt-5
-              text-sm
-              font-medium
-              ${
-                overdue
-                  ? "text-red-600"
-                  : todayFollowUp
-                  ? "text-blue-600"
-                  : "text-slate-600"
-              }
-            `}
-          >
-            {overdue &&
-              "⚠ Overdue Follow-up"}
+        {todayFollowUp && (
+          <div className="mt-4 text-sm font-medium text-blue-600">
+            🔔 Follow-up Today
+          </div>
+        )}
 
-            {todayFollowUp &&
-              "🔔 Follow-up Today"}
+        {overdue && (
+          <div className="mt-4 text-sm font-medium text-red-600">
+            ⚠ Overdue Follow-up
           </div>
         )}
       </div>
