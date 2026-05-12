@@ -1,38 +1,110 @@
 import { Request, Response } from "express";
-import { z } from "zod";
-import { discussionService } from "../services/discussionService";
 
-const createDiscussionSchema = z.object({
-  note: z.string().min(1),
-  followUpAt: z.string().datetime().optional(),
-});
+import { prisma } from "../utils/prisma";
 
 export const discussionController = {
-  async list(req: Request, res: Response) {
-    const leadId = String(req.params.id);
+  async list(
+    req: Request,
+    res: Response
+  ) {
+    try {
+      const leadId =
+        req.params.id as string;
 
-    const discussions =
-      await discussionService.getLeadDiscussions(
-        leadId
+      const discussions =
+        await prisma.discussion.findMany({
+          where: {
+            leadId,
+          },
+
+          orderBy: {
+            createdAt: "desc",
+          },
+        });
+
+      return res.json(
+        discussions
       );
+    } catch (error) {
+      console.error(error);
 
-    return res.json(discussions);
+      return res
+        .status(500)
+        .json({
+          error:
+            "Failed to fetch discussions",
+        });
+    }
   },
 
-  async create(req: Request, res: Response) {
-    const leadId = String(req.params.id);
+  async create(
+    req: Request,
+    res: Response
+  ) {
+    try {
+      const leadId =
+        req.params.id as string;
 
-    const body = createDiscussionSchema.parse(req.body);
+      const {
+        note,
+        followUpAt,
+      } = req.body;
 
-    const discussion =
-      await discussionService.createDiscussion({
-        leadId,
-        note: body.note,
-        followUpAt: body.followUpAt
-          ? new Date(body.followUpAt)
-          : undefined,
-      });
+      if (!note) {
+        return res
+          .status(400)
+          .json({
+            error:
+              "Note is required",
+          });
+      }
 
-    return res.status(201).json(discussion);
+      const discussion =
+        await prisma.discussion.create({
+          data: {
+            leadId,
+            note,
+
+            followUpAt:
+              followUpAt
+                ? new Date(
+                    followUpAt
+                  )
+                : null,
+          },
+        });
+
+      // UPDATE LEAD FOLLOW-UP
+      if (followUpAt) {
+        await prisma.lead.update({
+          where: {
+            id: leadId,
+          },
+
+          data: {
+            followUpAt:
+              new Date(
+                followUpAt
+              ),
+          },
+        });
+      }
+
+      return res
+        .status(201)
+        .json(discussion);
+    } catch (error) {
+      console.error(
+        "DISCUSSION CREATE ERROR:",
+        error
+      );
+
+      return res
+        .status(500)
+        .json({
+          error:
+            "Failed to create discussion",
+        });
+    }
   },
 };

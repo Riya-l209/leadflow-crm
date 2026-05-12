@@ -1,45 +1,125 @@
 import { Request, Response } from "express";
-import { z } from "zod";
-import { leadService } from "../services/leadService";
 
-const createLeadSchema = z.object({
-  name: z.string().min(1),
-  company: z.string().optional(),
-  phone: z.string().optional(),
-});
-
-const updateLeadSchema = z.object({
-  status: z.string().optional(),
-  followUpAt: z.string().datetime().nullable().optional(),
-});
+import { prisma } from "../utils/prisma";
 
 export const leadController = {
   async list(_req: Request, res: Response) {
-    const leads = await leadService.getAllLeads();
+    try {
+      const leads =
+        await prisma.lead.findMany({
+          include: {
+            discussions: {
+              orderBy: {
+                createdAt: "desc",
+              },
+            },
+          },
+          orderBy: {
+            createdAt: "desc",
+          },
+        });
 
-    return res.json(leads);
+      return res.json(leads);
+    } catch (error) {
+      console.error(error);
+
+      return res
+        .status(500)
+        .json({
+          error:
+            "Failed to fetch leads",
+        });
+    }
   },
 
-  async create(req: Request, res: Response) {
-    const body = createLeadSchema.parse(req.body);
+  async create(
+    req: Request,
+    res: Response
+  ) {
+    try {
+      const {
+        name,
+        company,
+        phone,
+      } = req.body;
 
-    const lead = await leadService.createLead(body);
+      if (!name) {
+        return res
+          .status(400)
+          .json({
+            error:
+              "Name is required",
+          });
+      }
 
-    return res.status(201).json(lead);
+      const lead =
+        await prisma.lead.create({
+          data: {
+            name,
+            company,
+            phone,
+            status: "NEW",
+          },
+        });
+
+      return res
+        .status(201)
+        .json(lead);
+    } catch (error) {
+      console.error(error);
+
+      return res
+        .status(500)
+        .json({
+          error:
+            "Failed to create lead",
+        });
+    }
   },
 
-  async update(req: Request, res: Response) {
-    const leadId = String(req.params.id);
+  async update(
+    req: Request,
+    res: Response
+  ) {
+    try {
+      const id =
+        req.params.id as string;
 
-    const body = updateLeadSchema.parse(req.body);
+      const status =
+        req.body.status;
 
-    const lead = await leadService.updateLead(leadId, {
-      status: body.status,
-      followUpAt: body.followUpAt
-        ? new Date(body.followUpAt)
-        : null,
-    });
+      console.log(
+        "Updating lead:",
+        id,
+        status
+      );
 
-    return res.json(lead);
+      const updatedLead =
+        await prisma.lead.update({
+          where: {
+            id,
+          },
+
+          data: {
+            status,
+          },
+        });
+
+      return res.json(
+        updatedLead
+      );
+    } catch (error) {
+      console.error(
+        "UPDATE ERROR:",
+        error
+      );
+
+      return res
+        .status(500)
+        .json({
+          error:
+            "Failed to update lead",
+        });
+    }
   },
 };

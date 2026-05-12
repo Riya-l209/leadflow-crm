@@ -41,25 +41,36 @@ export function LeadTimelineModal({
     try {
       setLoading(true);
 
+      // STEP 1: SAVE DISCUSSION
       await addDiscussion(lead.id, {
         note,
         followUpAt:
           followUpAt || undefined,
       });
 
-      await updateLeadStatus(
-        lead.id,
-        status
-      );
+      // STEP 2: TRY STATUS UPDATE
+      try {
+        await updateLeadStatus(
+          lead.id,
+          status
+        );
+      } catch (error) {
+        console.error(
+          "Status update failed:",
+          error
+        );
+      }
 
+      // RESET FORM
       setNote("");
       setFollowUpAt("");
 
-      onUpdated();
+      // REFRESH UI
+      await onUpdated();
     } catch (error) {
       console.error(error);
 
-      alert("Failed to update lead");
+      alert("Failed to save discussion");
     } finally {
       setLoading(false);
     }
@@ -82,9 +93,9 @@ export function LeadTimelineModal({
 
           <button
             onClick={onClose}
-            className="text-slate-500"
+            className="text-slate-500 text-xl"
           >
-            ✕
+            ×
           </button>
         </div>
 
