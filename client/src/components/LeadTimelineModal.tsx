@@ -1,7 +1,7 @@
 import { useState } from "react";
+import { format } from "date-fns";
 
 import type { Lead } from "../types/lead";
-
 import {
   addDiscussion,
   updateLead,
@@ -54,19 +54,15 @@ export function LeadTimelineModal({
         }
       );
 
-      await updateLead(lead.id, {
-        status,
-      });
-
-      setNote("");
-      setFollowUpAt("");
+      await updateLead(
+        lead.id,
+        { status }
+      );
 
       await onUpdated();
-
       onClose();
     } catch (error) {
       console.error(error);
-
       alert(
         "Failed to save discussion"
       );
@@ -77,16 +73,15 @@ export function LeadTimelineModal({
 
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-      <div className="bg-white w-full max-w-2xl rounded-3xl overflow-hidden shadow-2xl">
-        
-        {/* HEADER */}
-        <div className="flex items-center justify-between border-b border-slate-200 p-6">
+      <div className="bg-white w-full max-w-2xl rounded-3xl shadow-2xl overflow-hidden">
+
+        {/* Header */}
+        <div className="p-6 border-b border-slate-200 flex justify-between items-center">
           <div>
-            <h2 className="text-2xl font-bold text-slate-900">
+            <h2 className="text-2xl font-bold">
               {lead.name}
             </h2>
-
-            <p className="text-slate-500 mt-1">
+            <p className="text-slate-500">
               {lead.company ||
                 "No company"}
             </p>
@@ -94,58 +89,62 @@ export function LeadTimelineModal({
 
           <button
             onClick={onClose}
-            className="h-10 w-10 rounded-full bg-slate-100 hover:bg-slate-200"
+            className="text-xl"
           >
             ✕
           </button>
         </div>
 
-        {/* DISCUSSIONS */}
-        <div className="p-6 max-h-[400px] overflow-y-auto bg-slate-50 space-y-4">
-          {lead.discussions &&
-          lead.discussions.length >
-            0 ? (
+        {/* Timeline */}
+        <div className="max-h-[350px] overflow-y-auto p-6 bg-slate-50 space-y-4">
+          {lead.discussions?.length ? (
             [...lead.discussions]
               .reverse()
-              .map((discussion) => (
+              .map((d) => (
                 <div
-                  key={discussion.id}
-                  className="bg-white border border-slate-200 rounded-2xl p-4"
+                  key={d.id}
+                  className="flex gap-4"
                 >
-                  <p className="text-slate-800">
-                    {discussion.note}
-                  </p>
+                  <div className="w-3 h-3 mt-2 rounded-full bg-blue-500" />
 
-                  <p className="text-xs text-slate-400 mt-2">
-                    {new Date(
-                      discussion.createdAt
-                    ).toLocaleString()}
-                  </p>
+                  <div className="bg-white border rounded-2xl p-4 flex-1">
+                    <p className="text-slate-800">
+                      {d.note}
+                    </p>
+
+                    <p className="text-xs text-slate-400 mt-2">
+                      {format(
+                        new Date(
+                          d.createdAt
+                        ),
+                        "dd MMM yyyy, hh:mm a"
+                      )}
+                    </p>
+                  </div>
                 </div>
               ))
           ) : (
-            <div className="text-center text-slate-500 py-10">
+            <div className="text-center py-8 text-slate-500">
               No discussions yet
             </div>
           )}
         </div>
 
-        {/* FORM */}
-        <div className="border-t border-slate-200 p-6 space-y-4">
-          
+        {/* Form */}
+        <div className="p-6 border-t border-slate-200 space-y-4">
+
           <textarea
+            placeholder="Add discussion note..."
             value={note}
             onChange={(e) =>
               setNote(
                 e.target.value
               )
             }
-            placeholder="Add discussion note..."
-            className="w-full min-h-[120px] border border-slate-300 rounded-2xl px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full min-h-[120px] border rounded-2xl px-4 py-3"
           />
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            
+          <div className="grid md:grid-cols-2 gap-4">
             <input
               type="datetime-local"
               value={followUpAt}
@@ -154,7 +153,7 @@ export function LeadTimelineModal({
                   e.target.value
                 )
               }
-              className="border border-slate-300 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500"
+              className="border rounded-xl px-4 py-3"
             />
 
             <select
@@ -165,15 +164,15 @@ export function LeadTimelineModal({
                     .value as typeof statuses[number]
                 )
               }
-              className="border border-slate-300 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500"
+              className="border rounded-xl px-4 py-3"
             >
               {statuses.map(
-                (item) => (
+                (s) => (
                   <option
-                    key={item}
-                    value={item}
+                    key={s}
+                    value={s}
                   >
-                    {item.replaceAll(
+                    {s.replaceAll(
                       "_",
                       " "
                     )}
@@ -186,7 +185,7 @@ export function LeadTimelineModal({
           <button
             onClick={handleSave}
             disabled={loading}
-            className="w-full bg-black text-white rounded-xl py-3 font-medium hover:opacity-90 disabled:opacity-50"
+            className="w-full bg-black text-white rounded-xl py-3"
           >
             {loading
               ? "Saving..."
