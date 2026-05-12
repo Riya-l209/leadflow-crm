@@ -1,16 +1,32 @@
-import { useEffect, useState } from "react";
+import {
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
+
 import type { Lead } from "./types/lead";
 
 import { getLeads } from "./services/api";
 
-import { LeadCard } from "./components/LeadCard";
-import { AddLeadModal } from "./components/AddLeadModal";
+import LeadCard from "./components/LeadCard";
+
 import { LeadTimelineModal } from "./components/LeadTimelineModal";
 
-function App() {
-  const [leads, setLeads] = useState<Lead[]>(
-    []
-  );
+import { AddLeadModal } from "./components/AddLeadModal";
+
+const statuses = [
+  "ALL",
+  "NEW",
+  "CONTACTED",
+  "QUALIFIED",
+  "PROPOSAL_SENT",
+  "WON",
+  "LOST",
+];
+
+export default function App() {
+  const [leads, setLeads] =
+    useState<Lead[]>([]);
 
   const [loading, setLoading] =
     useState(true);
@@ -24,98 +40,105 @@ function App() {
   const [statusFilter, setStatusFilter] =
     useState("ALL");
 
-  async function refreshLeads() {
+  async function fetchLeads() {
     try {
-      const data = await getLeads();
+      const data =
+        await getLeads();
 
       setLeads(data);
-
-      if (selectedLead) {
-        const updatedLead = data.find(
-          (lead) =>
-            lead.id === selectedLead.id
-        );
-
-        if (updatedLead) {
-          setSelectedLead(updatedLead);
-        }
-      }
     } catch (error) {
       console.error(error);
+    } finally {
+      setLoading(false);
     }
   }
 
   useEffect(() => {
-    let mounted = true;
-
-    async function fetchLeads() {
-      try {
-        const data = await getLeads();
-
-        if (!mounted) return;
-
-        setLeads(data);
-      } catch (error) {
-        console.error(error);
-      } finally {
-        if (mounted) {
-          setLoading(false);
-        }
-      }
-    }
-
-    fetchLeads();
-
-    return () => {
-      mounted = false;
+    const load = async () => {
+      await fetchLeads();
     };
+
+    load();
   }, []);
 
-  const filteredLeads = leads.filter(
-    (lead) => {
-      const matchesSearch = lead.name
-        .toLowerCase()
-        .includes(search.toLowerCase());
+  const filteredLeads =
+    useMemo(() => {
+      return leads.filter(
+        (lead) => {
+          const matchesSearch =
+            lead.name
+              .toLowerCase()
+              .includes(
+                search.toLowerCase()
+              );
 
-      const matchesStatus =
-        statusFilter === "ALL"
-          ? true
-          : lead.status === statusFilter;
+          const matchesStatus =
+            statusFilter ===
+            "ALL"
+              ? true
+              : lead.status ===
+                statusFilter;
 
-      return (
-        matchesSearch && matchesStatus
+          return (
+            matchesSearch &&
+            matchesStatus
+          );
+        }
       );
-    }
-  );
+    }, [
+      leads,
+      search,
+      statusFilter,
+    ]);
 
   return (
-    <div className="min-h-screen bg-slate-50 p-6">
-      <div className="max-w-5xl mx-auto">
-        <div className="mb-8 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+    <div className="min-h-screen bg-slate-100">
+      
+      {/* HEADER */}
+      <div className="bg-white border-b border-slate-200">
+        <div className="max-w-7xl mx-auto px-6 py-5 flex flex-col md:flex-row gap-4 md:items-center md:justify-between">
+          
           <div>
-            <h1 className="text-3xl font-bold">
-              LeadFlow
+            <h1 className="text-3xl font-bold text-slate-900">
+              LeadFlow CRM
             </h1>
 
             <p className="text-slate-500 mt-1">
-              Lightweight lead management CRM
+              Lightweight Lead
+              Management Dashboard
             </p>
           </div>
 
           <AddLeadModal
-            onCreated={refreshLeads}
+            onCreated={
+              fetchLeads
+            }
           />
         </div>
+      </div>
 
-        <div className="flex flex-col md:flex-row gap-4 mb-6">
+      {/* FILTERS */}
+      <div className="max-w-7xl mx-auto px-6 pt-6">
+        <div className="bg-white border border-slate-200 rounded-2xl p-4 flex flex-col md:flex-row gap-4">
+          
           <input
             type="text"
             placeholder="Search leads..."
             value={search}
             onChange={(e) =>
-              setSearch(e.target.value)
+              setSearch(
+                e.target.value
+              )
             }
-            className="flex-1 px-4 py-2 rounded-xl border border-slate-300 bg-white"
+            className="
+              flex-1
+              border border-slate-300
+              rounded-xl
+              px-4 py-3
+              outline-none
+              focus:ring-2
+              focus:ring-blue-500
+            "
           />
 
           <select
@@ -125,66 +148,81 @@ function App() {
                 e.target.value
               )
             }
-            className="px-4 py-2 rounded-xl border border-slate-300 bg-white"
+            className="
+              border border-slate-300
+              rounded-xl
+              px-4 py-3
+              outline-none
+              focus:ring-2
+              focus:ring-blue-500
+            "
           >
-            <option value="ALL">
-              All Statuses
-            </option>
-
-            <option value="NEW">
-              New
-            </option>
-
-            <option value="CONTACTED">
-              Contacted
-            </option>
-
-            <option value="QUALIFIED">
-              Qualified
-            </option>
-
-            <option value="PROPOSAL_SENT">
-              Proposal Sent
-            </option>
-
-            <option value="WON">
-              Won
-            </option>
-
-            <option value="LOST">
-              Lost
-            </option>
+            {statuses.map(
+              (status) => (
+                <option
+                  key={status}
+                  value={status}
+                >
+                  {status.replaceAll(
+                    "_",
+                    " "
+                  )}
+                </option>
+              )
+            )}
           </select>
         </div>
+      </div>
 
+      {/* CONTENT */}
+      <div className="max-w-7xl mx-auto px-6 py-6">
         {loading ? (
-          <p>Loading...</p>
+          <div className="text-center py-20 text-slate-500">
+            Loading leads...
+          </div>
+        ) : filteredLeads.length ===
+          0 ? (
+          <div className="bg-white border border-dashed border-slate-300 rounded-3xl py-20 text-center">
+            <h2 className="text-xl font-semibold text-slate-700">
+              No leads found
+            </h2>
+
+            <p className="text-slate-500 mt-2">
+              Try adjusting search
+              or filters
+            </p>
+          </div>
         ) : (
-          <div className="grid gap-4 md:grid-cols-2">
-            {filteredLeads.map((lead) => (
-              <LeadCard
-                key={lead.id}
-                lead={lead}
-                onClick={() =>
-                  setSelectedLead(lead)
-                }
-              />
-            ))}
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+            {filteredLeads.map(
+              (lead) => (
+                <LeadCard
+                  key={lead.id}
+                  lead={lead}
+                  onClick={() =>
+                    setSelectedLead(
+                      lead
+                    )
+                  }
+                />
+              )
+            )}
           </div>
         )}
       </div>
 
+      {/* MODAL */}
       {selectedLead && (
         <LeadTimelineModal
           lead={selectedLead}
           onClose={() =>
             setSelectedLead(null)
           }
-          onUpdated={refreshLeads}
+          onUpdated={
+            fetchLeads
+          }
         />
       )}
     </div>
   );
 }
-
-export default App;

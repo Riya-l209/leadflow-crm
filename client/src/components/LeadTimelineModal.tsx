@@ -1,20 +1,26 @@
 import { useState } from "react";
-import { formatDistanceToNow } from "date-fns";
 
 import type { Lead } from "../types/lead";
 
 import {
   addDiscussion,
-  updateLeadStatus,
+  updateLead,
 } from "../services/api";
-
-import { getStatusColor } from "../utils/statusColor";
 
 interface Props {
   lead: Lead;
   onClose: () => void;
-  onUpdated: () => void;
+  onUpdated: () => Promise<void>;
 }
+
+const statuses = [
+  "NEW",
+  "CONTACTED",
+  "QUALIFIED",
+  "PROPOSAL_SENT",
+  "WON",
+  "LOST",
+] as const;
 
 export function LeadTimelineModal({
   lead,
@@ -28,42 +34,36 @@ export function LeadTimelineModal({
     useState("");
 
   const [status, setStatus] =
-    useState<Lead["status"]>(
-      lead.status
-    );
+    useState(lead.status);
 
   const [loading, setLoading] =
     useState(false);
 
-  async function handleAddDiscussion(
-    e: React.FormEvent
-  ) {
-    e.preventDefault();
-
+  async function handleSave() {
     if (!note.trim()) return;
 
     try {
       setLoading(true);
 
-      await addDiscussion(lead.id, {
-        note,
-        followUpAt:
-          followUpAt || undefined,
-      });
+      await addDiscussion(
+        lead.id,
+        {
+          note,
+          followUpAt:
+            followUpAt || undefined,
+        }
+      );
 
-      try {
-        await updateLeadStatus(
-          lead.id,
-          status
-        );
-      } catch (error) {
-        console.error(error);
-      }
+      await updateLead(lead.id, {
+        status,
+      });
 
       setNote("");
       setFollowUpAt("");
 
       await onUpdated();
+
+      onClose();
     } catch (error) {
       console.error(error);
 
@@ -76,210 +76,76 @@ export function LeadTimelineModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="bg-white w-full max-w-3xl rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh]">
+    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+      <div className="bg-white w-full max-w-2xl rounded-3xl overflow-hidden shadow-2xl">
         
         {/* HEADER */}
-        <div className="border-b border-slate-200 p-6 flex items-start justify-between">
+        <div className="flex items-center justify-between border-b border-slate-200 p-6">
           <div>
-            <div className="flex items-center gap-3 flex-wrap">
-              <h2 className="text-2xl font-bold text-slate-800">
-                {lead.name}
-              </h2>
+            <h2 className="text-2xl font-bold text-slate-900">
+              {lead.name}
+            </h2>
 
-              <span
-                className={`
-                  px-3 py-1 rounded-full text-xs font-semibold
-                  ${getStatusColor(
-                    lead.status
-                  )}
-                `}
-              >
-                {lead.status.replaceAll(
-                  "_",
-                  " "
-                )}
-              </span>
-            </div>
-
-            <div className="mt-2 text-sm text-slate-500 space-y-1">
-              {lead.company && (
-                <p>
-                  Company:
-                  {" "}
-                  {lead.company}
-                </p>
-              )}
-
-              {lead.phone && (
-                <p>
-                  Phone:
-                  {" "}
-                  {lead.phone}
-                </p>
-              )}
-            </div>
+            <p className="text-slate-500 mt-1">
+              {lead.company ||
+                "No company"}
+            </p>
           </div>
 
           <button
             onClick={onClose}
-            className="
-              h-10 w-10
-              rounded-full
-              bg-slate-100
-              hover:bg-slate-200
-              text-slate-600
-              text-lg
-              flex items-center justify-center
-            "
+            className="h-10 w-10 rounded-full bg-slate-100 hover:bg-slate-200"
           >
             ✕
           </button>
         </div>
 
         {/* DISCUSSIONS */}
-        <div className="flex-1 overflow-y-auto p-6 bg-slate-50">
-          <div className="space-y-4">
-            {lead.discussions.length ===
+        <div className="p-6 max-h-[400px] overflow-y-auto bg-slate-50 space-y-4">
+          {lead.discussions &&
+          lead.discussions.length >
             0 ? (
-              <div className="bg-white border border-dashed border-slate-300 rounded-2xl p-10 text-center">
-                <p className="text-slate-500">
-                  No discussions yet
-                </p>
-              </div>
-            ) : (
-              lead.discussions.map(
-                (discussion) => (
-                  <div
-                    key={discussion.id}
-                    className="
-                      bg-white
-                      border border-slate-200
-                      rounded-2xl
-                      p-4
-                      shadow-sm
-                    "
-                  >
-                    <p className="text-slate-700 leading-relaxed">
-                      {
-                        discussion.note
-                      }
-                    </p>
+            [...lead.discussions]
+              .reverse()
+              .map((discussion) => (
+                <div
+                  key={discussion.id}
+                  className="bg-white border border-slate-200 rounded-2xl p-4"
+                >
+                  <p className="text-slate-800">
+                    {discussion.note}
+                  </p>
 
-                    <div className="mt-3 flex items-center justify-between">
-                      <p className="text-xs text-slate-400">
-                        {formatDistanceToNow(
-                          new Date(
-                            discussion.createdAt
-                          ),
-                          {
-                            addSuffix: true,
-                          }
-                        )}
-                      </p>
-
-                      {discussion.followUpAt && (
-                        <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full">
-                          Follow-up scheduled
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                )
-              )
-            )}
-          </div>
+                  <p className="text-xs text-slate-400 mt-2">
+                    {new Date(
+                      discussion.createdAt
+                    ).toLocaleString()}
+                  </p>
+                </div>
+              ))
+          ) : (
+            <div className="text-center text-slate-500 py-10">
+              No discussions yet
+            </div>
+          )}
         </div>
 
         {/* FORM */}
-        <form
-          onSubmit={
-            handleAddDiscussion
-          }
-          className="border-t border-slate-200 bg-white p-6 space-y-5"
-        >
-          <div>
-            <label className="block text-sm font-medium mb-2 text-slate-700">
-              Lead Status
-            </label>
+        <div className="border-t border-slate-200 p-6 space-y-4">
+          
+          <textarea
+            value={note}
+            onChange={(e) =>
+              setNote(
+                e.target.value
+              )
+            }
+            placeholder="Add discussion note..."
+            className="w-full min-h-[120px] border border-slate-300 rounded-2xl px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500"
+          />
 
-            <select
-              value={status}
-              onChange={(e) =>
-                setStatus(
-                  e.target
-                    .value as Lead["status"]
-                )
-              }
-              className="
-                w-full
-                rounded-xl
-                border border-slate-300
-                px-4 py-3
-                outline-none
-                focus:ring-2
-                focus:ring-blue-500
-              "
-            >
-              <option value="NEW">
-                New
-              </option>
-
-              <option value="CONTACTED">
-                Contacted
-              </option>
-
-              <option value="QUALIFIED">
-                Qualified
-              </option>
-
-              <option value="PROPOSAL_SENT">
-                Proposal Sent
-              </option>
-
-              <option value="WON">
-                Won
-              </option>
-
-              <option value="LOST">
-                Lost
-              </option>
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium mb-2 text-slate-700">
-              Discussion Note
-            </label>
-
-            <textarea
-              value={note}
-              onChange={(e) =>
-                setNote(
-                  e.target.value
-                )
-              }
-              placeholder="Write discussion details..."
-              required
-              className="
-                w-full
-                min-h-[120px]
-                rounded-xl
-                border border-slate-300
-                px-4 py-3
-                outline-none
-                resize-none
-                focus:ring-2
-                focus:ring-blue-500
-              "
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium mb-2 text-slate-700">
-              Follow-up Date & Time
-            </label>
-
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            
             <input
               type="datetime-local"
               value={followUpAt}
@@ -288,37 +154,45 @@ export function LeadTimelineModal({
                   e.target.value
                 )
               }
-              className="
-                w-full
-                rounded-xl
-                border border-slate-300
-                px-4 py-3
-                outline-none
-                focus:ring-2
-                focus:ring-blue-500
-              "
+              className="border border-slate-300 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500"
             />
+
+            <select
+              value={status}
+              onChange={(e) =>
+                setStatus(
+                  e.target
+                    .value as typeof statuses[number]
+                )
+              }
+              className="border border-slate-300 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              {statuses.map(
+                (item) => (
+                  <option
+                    key={item}
+                    value={item}
+                  >
+                    {item.replaceAll(
+                      "_",
+                      " "
+                    )}
+                  </option>
+                )
+              )}
+            </select>
           </div>
 
           <button
-            type="submit"
+            onClick={handleSave}
             disabled={loading}
-            className="
-              w-full
-              rounded-xl
-              bg-black
-              text-white
-              py-3
-              font-medium
-              hover:opacity-90
-              disabled:opacity-50
-            "
+            className="w-full bg-black text-white rounded-xl py-3 font-medium hover:opacity-90 disabled:opacity-50"
           >
             {loading
               ? "Saving..."
               : "Save Discussion"}
           </button>
-        </form>
+        </div>
       </div>
     </div>
   );
