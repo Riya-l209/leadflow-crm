@@ -23,79 +23,102 @@ export function LeadCard({
   return (
     <button
       onClick={onClick}
-      className={`bg-white rounded-xl p-4 shadow-sm border transition text-left hover:shadow-md ${
-        isOverdue
-          ? "border-red-500"
-          : "border-slate-200"
-      }`}
+      className={`
+        group
+        bg-white
+        rounded-2xl
+        p-5
+        border
+        text-left
+        shadow-sm
+        hover:shadow-xl
+        hover:-translate-y-1
+        transition-all
+        duration-200
+        ${
+          isOverdue
+            ? "border-red-400"
+            : "border-slate-200"
+        }
+      `}
     >
-      <div className="flex items-start justify-between">
+      <div className="flex items-start justify-between gap-3">
         <div>
-          <div className="flex items-center gap-2">
-            <h2 className="font-semibold text-lg">
+          <div className="flex items-center gap-2 flex-wrap">
+            <h2 className="text-lg font-semibold text-slate-800">
               {lead.name}
             </h2>
 
             {isTodayFollowUp && (
-              <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full">
+              <span className="px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700">
                 Today
               </span>
             )}
 
             {isOverdue && (
-              <span className="text-xs bg-red-100 text-red-700 px-2 py-1 rounded-full">
+              <span className="px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-700">
                 Overdue
               </span>
             )}
           </div>
 
           {lead.company && (
-            <p className="text-sm text-slate-500">
+            <p className="text-sm text-slate-500 mt-1">
               {lead.company}
             </p>
           )}
         </div>
 
         <span
-          className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(
-            lead.status
-          )}`}
+          className={`
+            px-3 py-1
+            rounded-full
+            text-xs
+            font-semibold
+            whitespace-nowrap
+            ${getStatusColor(
+              lead.status
+            )}
+          `}
         >
-          {lead.status.replace(
+          {lead.status.replaceAll(
             "_",
             " "
           )}
         </span>
       </div>
 
-      <div className="mt-4">
-        <p className="text-sm text-slate-700">
+      <div className="mt-5">
+        <p className="text-sm text-slate-700 line-clamp-2">
           {latestDiscussion
             ? latestDiscussion.note
             : "No discussions yet"}
         </p>
 
-        <p className="text-xs text-slate-400 mt-2">
-          {latestDiscussion
-            ? formatDistanceToNow(
-                new Date(
-                  latestDiscussion.createdAt
-                ),
-                {
-                  addSuffix: true,
-                }
-              )
-            : "Just added"}
-        </p>
-
-        {lead.followUpAt && (
-          <p className="text-xs text-slate-500 mt-2">
-            Follow-up:{" "}
-            {new Date(
-              lead.followUpAt
-            ).toLocaleString()}
+        <div className="mt-4 flex items-center justify-between">
+          <p className="text-xs text-slate-400">
+            {latestDiscussion
+              ? formatDistanceToNow(
+                  new Date(
+                    latestDiscussion.createdAt
+                  ),
+                  {
+                    addSuffix: true,
+                  }
+                )
+              : "Just added"}
           </p>
-        )}
+
+          {lead.followUpAt && (
+            <p className="text-xs font-medium text-slate-500">
+              Follow-up:
+              {" "}
+              {new Date(
+                lead.followUpAt
+              ).toLocaleDateString()}
+            </p>
+          )}
+        </div>
       </div>
     </button>
   );
