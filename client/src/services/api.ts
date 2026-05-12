@@ -58,17 +58,14 @@ export async function updateLead(
     {
       method: "PATCH",
       headers: {
-        "Content-Type":
-          "application/json",
+        "Content-Type": "application/json",
       },
       body: JSON.stringify(data),
     }
   );
 
   if (!response.ok) {
-    throw new Error(
-      "Failed to update lead"
-    );
+    throw new Error("Failed to update lead");
   }
 
   return response.json();
