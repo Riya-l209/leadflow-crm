@@ -1,4 +1,5 @@
 import { useState } from "react";
+
 import { createLead } from "../services/api";
 
 interface Props {
@@ -8,13 +9,20 @@ interface Props {
 export function AddLeadModal({
   onCreated,
 }: Props) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] =
+    useState(false);
 
-  const [name, setName] = useState("");
-  const [company, setCompany] = useState("");
-  const [phone, setPhone] = useState("");
+  const [name, setName] =
+    useState("");
 
-  const [loading, setLoading] = useState(false);
+  const [company, setCompany] =
+    useState("");
+
+  const [phone, setPhone] =
+    useState("");
+
+  const [loading, setLoading] =
+    useState(false);
 
   async function handleSubmit(
     e: React.FormEvent
@@ -38,100 +46,177 @@ export function AddLeadModal({
 
       setOpen(false);
 
-      onCreated();
+      await onCreated();
     } catch (error) {
       console.error(error);
+
       alert("Failed to create lead");
     } finally {
       setLoading(false);
     }
   }
 
-  if (!open) {
-    return (
+  return (
+    <>
+      {/* OPEN BUTTON */}
       <button
-        onClick={() => setOpen(true)}
-        className="bg-black text-white px-4 py-2 rounded-xl"
+        onClick={() =>
+          setOpen(true)
+        }
+        className="
+          bg-black
+          text-white
+          px-5 py-3
+          rounded-xl
+          font-medium
+          hover:opacity-90
+        "
       >
         + Add Lead
       </button>
-    );
-  }
 
-  return (
-    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-      <div className="bg-white rounded-2xl p-6 w-full max-w-md">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-semibold">
-            Add New Lead
-          </h2>
+      {/* MODAL */}
+      {open && (
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden">
+            
+            {/* HEADER */}
+            <div className="border-b border-slate-200 p-6 flex items-center justify-between">
+              <div>
+                <h2 className="text-2xl font-bold text-slate-800">
+                  Add New Lead
+                </h2>
 
-          <button
-            onClick={() => setOpen(false)}
-            className="text-slate-500"
-          >
-            ✕
-          </button>
+                <p className="text-sm text-slate-500 mt-1">
+                  Create a new lead for your pipeline
+                </p>
+              </div>
+
+              <button
+                onClick={() =>
+                  setOpen(false)
+                }
+                className="
+                  h-10 w-10
+                  rounded-full
+                  bg-slate-100
+                  hover:bg-slate-200
+                  flex items-center justify-center
+                  text-slate-600
+                "
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* FORM */}
+            <form
+              onSubmit={
+                handleSubmit
+              }
+              className="p-6 space-y-5"
+            >
+              <div>
+                <label className="block text-sm font-medium mb-2 text-slate-700">
+                  Lead Name *
+                </label>
+
+                <input
+                  type="text"
+                  required
+                  value={name}
+                  onChange={(e) =>
+                    setName(
+                      e.target.value
+                    )
+                  }
+                  placeholder="John Doe"
+                  className="
+                    w-full
+                    rounded-xl
+                    border border-slate-300
+                    px-4 py-3
+                    outline-none
+                    focus:ring-2
+                    focus:ring-blue-500
+                  "
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-2 text-slate-700">
+                  Company
+                </label>
+
+                <input
+                  type="text"
+                  value={company}
+                  onChange={(e) =>
+                    setCompany(
+                      e.target.value
+                    )
+                  }
+                  placeholder="Acme Inc."
+                  className="
+                    w-full
+                    rounded-xl
+                    border border-slate-300
+                    px-4 py-3
+                    outline-none
+                    focus:ring-2
+                    focus:ring-blue-500
+                  "
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-2 text-slate-700">
+                  Phone
+                </label>
+
+                <input
+                  type="text"
+                  value={phone}
+                  onChange={(e) =>
+                    setPhone(
+                      e.target.value
+                    )
+                  }
+                  placeholder="+91 9876543210"
+                  className="
+                    w-full
+                    rounded-xl
+                    border border-slate-300
+                    px-4 py-3
+                    outline-none
+                    focus:ring-2
+                    focus:ring-blue-500
+                  "
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="
+                  w-full
+                  rounded-xl
+                  bg-black
+                  text-white
+                  py-3
+                  font-medium
+                  hover:opacity-90
+                  disabled:opacity-50
+                "
+              >
+                {loading
+                  ? "Creating..."
+                  : "Create Lead"}
+              </button>
+            </form>
+          </div>
         </div>
-
-        <form
-          onSubmit={handleSubmit}
-          className="space-y-4"
-        >
-          <div>
-            <label className="block text-sm mb-1">
-              Name *
-            </label>
-
-            <input
-              value={name}
-              onChange={(e) =>
-                setName(e.target.value)
-              }
-              className="w-full border border-slate-300 rounded-xl px-3 py-2"
-              required
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm mb-1">
-              Company
-            </label>
-
-            <input
-              value={company}
-              onChange={(e) =>
-                setCompany(e.target.value)
-              }
-              className="w-full border border-slate-300 rounded-xl px-3 py-2"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm mb-1">
-              Phone
-            </label>
-
-            <input
-              value={phone}
-              onChange={(e) =>
-                setPhone(e.target.value)
-              }
-              className="w-full border border-slate-300 rounded-xl px-3 py-2"
-            />
-          </div>
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-black text-white py-2 rounded-xl"
-          >
-            {loading
-              ? "Creating..."
-              : "Create Lead"}
-          </button>
-        </form>
-      </div>
-    </div>
+      )}
+    </>
   );
 }
