@@ -3,9 +3,7 @@ import type { Lead } from "../types/lead";
 const BASE_URL =
   "http://localhost:4000/api";
 
-export async function getLeads(): Promise<
-  Lead[]
-> {
+export async function getLeads(): Promise<Lead[]> {
   const response = await fetch(
     `${BASE_URL}/leads`
   );
@@ -30,12 +28,10 @@ export async function createLead(
     `${BASE_URL}/leads`,
     {
       method: "POST",
-
       headers: {
         "Content-Type":
           "application/json",
       },
-
       body: JSON.stringify(data),
     }
   );
@@ -49,22 +45,22 @@ export async function createLead(
   return response.json();
 }
 
+
 export async function updateLead(
   id: string,
   data: {
-    status: string;
+    status?: string;
+    followUpAt?: string;
   }
 ) {
   const response = await fetch(
     `${BASE_URL}/leads/${id}`,
     {
       method: "PATCH",
-
       headers: {
         "Content-Type":
           "application/json",
       },
-
       body: JSON.stringify(data),
     }
   );
@@ -89,12 +85,10 @@ export async function addDiscussion(
     `${BASE_URL}/leads/${leadId}/discussions`,
     {
       method: "POST",
-
       headers: {
         "Content-Type":
           "application/json",
       },
-
       body: JSON.stringify(data),
     }
   );
