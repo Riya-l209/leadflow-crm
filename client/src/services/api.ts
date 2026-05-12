@@ -1,8 +1,7 @@
 import type { Lead } from "../types/lead";
 
 const BASE_URL =
-  "https://leadflow-crm-production-f999.up.railway.app/api";
-
+  "http://localhost:4000/api";
 export async function getLeads(): Promise<Lead[]> {
   const response = await fetch(
     `${BASE_URL}/leads`
