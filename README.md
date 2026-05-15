@@ -42,21 +42,6 @@ REST API (Express.js)
 Database (Prisma)
 
 
----
-
-## 📸 UI Preview
-
-> Add screenshots inside `/screenshots` folder
-
-
-
-
-
-
-
-
----
-
 ## 🚀 How to Run Locally
 
 ### 1. Clone repository
